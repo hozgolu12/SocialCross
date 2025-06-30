@@ -1,7 +1,7 @@
 
-# Social Media Cross-Posting Backend
+# Social Media Cross-Posting App
 
-A comprehensive Node.js backend for cross-posting content to multiple social media platforms with AI-powered content adaptation.
+A comprehensive Nodejs app for cross-posting content to multiple social media platforms with AI-powered content adaptation.
 
 ## Features
 
@@ -17,6 +17,7 @@ A comprehensive Node.js backend for cross-posting content to multiple social med
 ## Tech Stack
 
 - **Backend**: Node.js + Express + TypeScript
+- **Frontend**: Vite React + TailwindCss + Typescript
 - **Database**: MongoDB with Mongoose
 - **Authentication**: JWT + Passport.js
 - **AI**: OpenAI GPT-4 API
@@ -46,6 +47,10 @@ cp .env.example .env
    - Redis URL
 
 5. Start the development server:
+```bash
+npm run dev
+```
+6. Start the development client:
 ```bash
 npm run dev
 ```
@@ -87,25 +92,27 @@ See `.env.example` for all required environment variables.
 3. Generate API keys and tokens
 4. Set up OAuth 2.0 with PKCE
 
-### Facebook Graph API
-1. Create a Facebook Developer account
-2. Create a new Facebook app
-3. Add Facebook Login product
-4. Configure OAuth redirect URIs
-5. Request permissions: `pages_manage_posts`, `pages_read_engagement`
+### Telegram Bot API
+1. Create a Telegram account
+2. Chat with the BotFather bot to create a new bot
+3. Get the bot token from BotFather
+4. Use the Telegram Bot API endpoints with your bot token to send and receive messages
 
-### Instagram Business API
-1. Use Facebook Graph API (Instagram is owned by Facebook)
-2. Connect Instagram Business account to Facebook Page
-3. Request permissions: `instagram_basic`, `instagram_content_publish`
+### Reddit API (OAuth 2.0)
+1. Create a Reddit account
+2. Go to Reddit App Preferences
+3. Create a new app (choose script, web, or installed app)
+4. Get the client ID and client secret
+5. Implement OAuth 2.0 to get access tokens for API calls
 
 ## Content Adaptation
 
 The AI service automatically adapts content for each platform:
 
 - **Twitter**: 280 character limit, conversational tone, relevant hashtags
-- **Facebook**: Professional tone, longer content allowed, engagement focus
-- **Instagram**: Visual-first, emojis, lifestyle hashtags, image-centric
+- **Telegram: Direct messaging style, real-time updates, supports rich media (images, buttons, polls), great for communities and broadcasts, no algorithmic feed
+- **Reddit: Forum-style content, text or media posts, subreddit-specific culture, upvotes/downvotes drive visibility, detailed discussions preferred over short-form
+
 
 ## Scheduling
 
@@ -168,6 +175,3 @@ npm start
 4. Add tests
 5. Submit a pull request
 
-## License
-
-MIT License - see LICENSE file for details

@@ -7,7 +7,8 @@ A comprehensive Nodejs app for cross-posting content to multiple social media pl
 
 - **User Authentication**: JWT-based authentication with registration and login
 - **OAuth Integration**: Connect Twitter, Facebook, and Instagram accounts
-- **AI Content Adaptation**: OpenAI GPT-4 powered content optimization for each platform
+- **AI**: OpenAI GPT-4 powered content creation for each platform
+- **Content Adaptation**: Adaptor for content optimization and adaptation for each platform
 - **Multi-Platform Publishing**: Automated posting to Twitter, Facebook, and Instagram
 - **Image Upload**: Cloudinary integration for image handling
 - **Post Scheduling**: Redis + BullMQ for scheduling posts
@@ -24,6 +25,14 @@ A comprehensive Nodejs app for cross-posting content to multiple social media pl
 - **File Upload**: Multer + Cloudinary
 - **Job Queue**: Redis + BullMQ
 - **Social APIs**: Twitter API v2, Facebook Graph API, Instagram Graph API
+
+## Content Adaptation
+**Content is adapted for each platform using custom logic:**
+
+--Twitter: Trims to 280 characters, adds hashtags, shortens links.
+--Telegram: Adds emojis, supports images/videos, and hashtags.
+--Reddit: Formats content in Markdown, includes links and images.
+
 
 ## Installation
 

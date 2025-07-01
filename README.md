@@ -10,10 +10,13 @@ A comprehensive Nodejs app for cross-posting content to multiple social media pl
 - **AI**: OpenAI GPT-4 powered content creation for each platform
 - **Content Adaptation**: Adaptor for content optimization and adaptation for each platform
 - **Multi-Platform Publishing**: Automated posting to Twitter, Facebook, and Instagram
-- **Image Upload**: Cloudinary integration for image handling
+- **Image & Video Upload**: Upload and preview images and videos (Cloudinary integration)
+- **Reach Analytics**: View follower/subscriber counts for connected accounts
 - **Post Scheduling**: Redis + BullMQ for scheduling posts
 - **Content Preview**: Preview adapted content before publishing
 - **Error Handling**: Comprehensive error handling and logging
+- **Content Preview**: Preview adapted content before publishing
+- **Responsive UI**: Built with React and Tailwind CSS.
 
 ## Tech Stack
 
@@ -29,9 +32,9 @@ A comprehensive Nodejs app for cross-posting content to multiple social media pl
 ## Content Adaptation
 **Content is adapted for each platform using custom logic:**
 
---Twitter: Trims to 280 characters, adds hashtags, shortens links.
---Telegram: Adds emojis, supports images/videos, and hashtags.
---Reddit: Formats content in Markdown, includes links and images.
+- **Twitter**: Trims to 280 characters, adds hashtags, shortens links.
+- **Telegram**: Adds emojis, supports images/videos, and hashtags.
+- **Reddit**: Formats content in Markdown, includes links and images.
 
 
 ## Installation

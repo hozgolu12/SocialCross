@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Navbar from '@/components/Navbar';
@@ -12,9 +12,12 @@ import { Image, Send, Check, Edit } from 'lucide-react';
 import { config } from '@/config';
 
 const CreatePost = () => {
+  const [useAI, setUseAI] = useState(false);
   const [content, setContent] = useState('');
+  const [aiPrompt, setAIPrompt] = useState(''); // New state for AI prompt
   const [platforms, setPlatforms] = useState<string[]>([]);
   const [images, setImages] = useState<File[]>([]);
+  const [videos, setVideos] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [currentPost, setCurrentPost] = useState<any>(null);
   const [showPreview, setShowPreview] = useState(false);
@@ -24,6 +27,14 @@ const CreatePost = () => {
   const { token } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   const platformOptions = [
     { id: 'twitter', label: 'Twitter (X)', color: 'bg-blue-500' },
@@ -40,9 +51,9 @@ const CreatePost = () => {
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setImages(Array.from(e.target.files));
-    }
+    const files = Array.from(e.target.files || []);
+    setImages(files.filter(file => file.type.startsWith('image/')));
+    setVideos(files.filter(file => file.type.startsWith('video/')));
   };
 
   const handleCreatePost = async () => {
@@ -73,7 +84,7 @@ const CreatePost = () => {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
-          // ❌ DO NOT set 'Content-Type' when using FormData
+          // ❌ DO NOT set 'Content-Type': 'application/json' when using FormData
         },
         body: formData
       });
@@ -164,9 +175,6 @@ const CreatePost = () => {
       if (!response.ok) {
         throw new Error('Failed to publish post');
       }
-
-      const data = await response.json();
-      
       toast({
         title: "Success",
         description: "Post published to selected platforms!",
@@ -179,6 +187,36 @@ const CreatePost = () => {
         description: error.message,
         variant: "destructive",
       });
+    }
+  };
+
+  const handleAIGenerate = async () => {
+    setIsLoading(true);
+    try {
+      const resp = await fetch(`${config.BACKEND_URL}/api/ai/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ prompt: aiPrompt || content || 'Generate a social media post' }),
+      });
+
+      if (!resp.ok) {
+        const errorData = await resp.json();
+        throw new Error(errorData.message || `Server error: ${resp.status} ${resp.statusText}`);
+      }
+
+      const data = await resp.json();
+      setContent(data.content);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || 'Failed to generate content with AI',
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -241,6 +279,26 @@ const CreatePost = () => {
                             </div>
                           )}
                         </div>
+                        {adaptation.link && (
+                          <div className="mt-2 text-blue-600 text-sm">
+                            <a href={adaptation.link} target="_blank" rel="noopener noreferrer">{adaptation.link}</a>
+                          </div>
+                        )}
+                        {adaptation.image && (
+                          <div className="mt-2">
+                            <img src={adaptation.image} alt="Preview" className="max-w-xs rounded" />
+                          </div>
+                        )}
+                        {adaptation.video && (
+                          <div className="mt-2">
+                            <video src={adaptation.video} controls className="max-w-xs rounded" />
+                          </div>
+                        )}
+                        {adaptation.formattedContent && adaptation.platform === 'reddit' && (
+                          <div className="mt-2 bg-gray-50 p-2 rounded text-sm">
+                            <pre>{adaptation.formattedContent}</pre>
+                          </div>
+                        )}
                         <div className="flex justify-between items-center">
                           <span className={`px-2 py-1 rounded text-xs ${
                             adaptation.isApproved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
@@ -316,6 +374,39 @@ const CreatePost = () => {
                   <CardTitle>Post Content</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* AI Content Generation Option */}
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="use-ai"
+                      checked={useAI}
+                      onCheckedChange={(checked) => setUseAI(checked as boolean)}
+                    />
+                    <label htmlFor="use-ai" className="text-sm font-medium cursor-pointer">
+                      Generate content with AI
+                    </label>
+                  </div>
+                  {useAI && (
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="text"
+                        value={aiPrompt}
+                        onChange={e => setAIPrompt(e.target.value)}
+                        placeholder="Enter a prompt for AI (e.g. Write a post about AI tools)"
+                        className="border rounded px-2 py-1 text-sm w-72"
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={handleAIGenerate}
+                        disabled={isLoading}
+                      >
+                        Generate with AI
+                      </Button>
+                      {isLoading && <span className="text-xs text-gray-500 ml-2">Generating...</span>}
+                    </div>
+                  )}
+                  {/* Post Content Textarea */}
                   <Textarea
                     placeholder="What would you like to share?"
                     value={content}
@@ -350,6 +441,17 @@ const CreatePost = () => {
                         </span>
                       )}
                     </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    {images.map((img, idx) => (
+                      <img key={idx} src={URL.createObjectURL(img)} alt="preview" className="w-24 h-24 object-cover rounded" />
+                    ))}
+                    {videos.map((vid, idx) => (
+                      <video key={idx} controls className="w-24 h-24 rounded">
+                        <source src={URL.createObjectURL(vid)} type={vid.type} />
+                        Your browser does not support the video tag.
+                      </video>
+                    ))}
                   </div>
                 </CardContent>
               </Card>

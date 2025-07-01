@@ -1,21 +1,21 @@
-
 import express from 'express';
 import { body, validationResult } from 'express-validator';
 import { Post } from '../models/Post';
-import { OpenAIService } from '../services/openaiService';
 import { SocialMediaService } from '../services/socialMediaService';
 import { User } from '../models/User';
 import { auth } from '../middleware/auth';
 import { upload } from '../middleware/upload';
 import { Request, Response } from 'express';
+import { adaptContent } from '../services/adaptationService';
+import cloudinary from 'cloudinary';
 
 const router = express.Router();
 
 // Create post with AI adaptation
-router.post('/', auth, upload.array('images', 4), [
+router.post('/', auth, upload.array('media', 4), [
   body('content').trim().isLength({ min: 1, max: 2000 }),
   body('platforms').isArray({ min: 1 })
-  ], async (req: Request, res: Response) => {
+], async (req: Request, res: Response) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -25,12 +25,30 @@ router.post('/', auth, upload.array('images', 4), [
     const { content, platforms } = req.body;
     const userId = req.user!.id;
     const files = req.files as Express.Multer.File[];
-    
-    // Upload images to Cloudinary
     const imageUrls: string[] = [];
+    const videoUrls: string[] = [];
+
     if (files && files.length > 0) {
       for (const file of files) {
-        imageUrls.push(`https://placeholder-image-url.com/${file.filename}`);
+        if (file.mimetype.startsWith('image/')) {
+          // Upload image to Cloudinary
+          const uploadRes = await cloudinary.v2.uploader.upload_stream(
+            { resource_type: 'image' },
+            (error, result) => {
+              if (result?.secure_url) imageUrls.push(result.secure_url);
+            }
+          );
+          uploadRes.end(file.buffer);
+        } else if (file.mimetype.startsWith('video/')) {
+          // Upload video to Cloudinary
+          const uploadRes = await cloudinary.v2.uploader.upload_stream(
+            { resource_type: 'video' },
+            (error, result) => {
+              if (result?.secure_url) videoUrls.push(result.secure_url);
+            }
+          );
+          uploadRes.end(file.buffer);
+        }
       }
     }
 
@@ -39,25 +57,26 @@ router.post('/', auth, upload.array('images', 4), [
       userId,
       originalContent: content,
       images: imageUrls,
+      videos: videoUrls,
       targetPlatforms: platforms,
       adaptedContent: []
     });
 
-    // Generate AI adaptations for each platform
+    // Use code-based adaptation for each platform
     for (const platform of platforms) {
       try {
-        const adaptation = await OpenAIService.adaptContent({
-          originalContent: content,
-          platform: platform as 'twitter' | 'telegram' | 'reddit',
-          hasImages: imageUrls.length > 0
-        });
+        const adaptation = adaptContent(platform, content, { images: imageUrls, videos: videoUrls });
 
         post.adaptedContent.push({
           platform: platform as 'twitter' | 'telegram' | 'reddit',
           content: adaptation.content,
           hashtags: adaptation.hashtags,
           isApproved: false,
-          publishStatus: 'pending'
+          publishStatus: 'pending',
+          link: adaptation.link,
+          image: adaptation.image,
+          video: adaptation.video, 
+          formattedContent: adaptation.formattedContent // for reddit
         });
       } catch (error) {
         console.error(`Adaptation error for ${platform}:`, error);
@@ -74,7 +93,7 @@ router.post('/', auth, upload.array('images', 4), [
     await post.save();
 
     res.status(201).json({
-      message: 'Post created with AI adaptations',
+      message: 'Post created with platform adaptations',
       post
     });
   } catch (error) {

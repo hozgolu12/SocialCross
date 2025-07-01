@@ -155,6 +155,9 @@ const SocialAccounts = () => {
     }
   };
 
+
+  const activeAccounts = accounts.filter(acc => acc.isActive);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -175,6 +178,22 @@ const SocialAccounts = () => {
         <div className="px-4 py-6 sm:px-0">
           <h1 className="text-2xl font-bold text-gray-900 mb-6">Social Media Accounts</h1>
           
+          {/* Active Accounts Summary */}
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold mb-2">Active Accounts</h2>
+            {activeAccounts.length > 0 ? (
+              <ul className="list-disc list-inside text-gray-700">
+                {activeAccounts.map(acc => (
+                  <li key={acc.platform}>
+                    {platformInfo[acc.platform]?.name || acc.platform} (@{acc.username})
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-gray-500">No active accounts.</p>
+            )}
+          </div>
+
           <div className="grid gap-6">
             {Object.entries(platformInfo).map(([platform, info]) => {
               const account = accounts.find(acc => acc.platform === platform);
@@ -218,7 +237,7 @@ const SocialAccounts = () => {
                             }`}>
                               {account.isActive ? 'Active' : 'Inactive'}
                             </span>
-                          </div>
+                            </div>
                         ) : (
                           <p className="text-sm text-gray-600">
                             Connect your {info.name} account to start cross-posting

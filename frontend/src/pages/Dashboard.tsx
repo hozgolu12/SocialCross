@@ -18,11 +18,28 @@ const Dashboard = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reach, setReach] = useState<{ totalReach: number, details: any[] }>({ totalReach: 0, details: [] });
 
   useEffect(() => {
    if (token) {
       fetchDashboardData();
     }
+  }, [token]);
+
+  useEffect(() => {
+    const fetchReach = async () => {
+      try {
+        const resp = await fetch(`${config.BACKEND_URL}/api/user/reach`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (resp.ok) {
+          setReach(await resp.json());
+        }
+      } catch (e) {
+        // handle error
+      }
+    };
+    fetchReach();
   }, [token]);
 
   const fetchDashboardData = async () => {
@@ -148,15 +165,17 @@ const Dashboard = () => {
               </Card>
             </Link>
 
-            <Card>
-              <CardContent className="flex items-center p-6">
-                <Users className="h-8 w-8 text-orange-600 mr-4" />
-                <div>
-                  <h3 className="font-semibold">Reach</h3>
-                  <p className="text-sm text-gray-600">Coming soon</p>
-                </div>
-              </CardContent>
-            </Card>
+            <Link to="/reach">
+              <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                <CardContent className="flex items-center p-6">
+                  <Users className="h-8 w-8 text-orange-600 mr-4" />
+                  <div>
+                    <h3 className="font-semibold">Reach</h3>
+                    <p className="text-sm text-gray-600">Total followers/subscribers</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           </div>
 
           {/* Recent Activity */}

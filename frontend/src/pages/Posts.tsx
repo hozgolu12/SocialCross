@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { config } from '@/config';
 import { useToast } from '@/hooks/use-toast';
-import { title } from 'process';
 
 const Posts = () => {
   const [posts, setPosts] = useState<any[]>([]);

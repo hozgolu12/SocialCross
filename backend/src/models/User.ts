@@ -11,6 +11,9 @@ export interface ISocialAccount {
   tokenExpiry?: Date;
   isActive: boolean;
   connectedAt: Date;
+  followersCount?: number;   // Twitter, Instagram, etc.
+  memberCount?: number;      // Telegram groups/channels
+  subscribers?: number;      // Reddit subreddits
 }
 
 export interface IUser extends Document {
@@ -36,7 +39,10 @@ const SocialAccountSchema = new Schema<ISocialAccount>({
   refreshToken: String,
   tokenExpiry: Date,
   isActive: { type: Boolean, default: true },
-  connectedAt: { type: Date, default: Date.now }
+  connectedAt: { type: Date, default: Date.now },
+  followersCount: { type: Number, default: 0 },
+  memberCount: { type: Number, default: 0 },
+  subscribers: { type: Number, default: 0 }
 });
 
 const UserSchema = new Schema<IUser>({

@@ -15,6 +15,7 @@ import userRoutes from './routes/user';
 import postRoutes from './routes/post';
 import socialRoutes from './routes/social';
 import oauthRoutes from './routes/oauth';
+import aiRoutes from './routes/ai';
 import session from 'express-session';
 
 const app = express();
@@ -61,6 +62,7 @@ app.use('/api/user', userRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/social', socialRoutes);
 app.use('/api/oauth', oauthRoutes);
+app.use('/api/ai', aiRoutes);
 
 // Health check
 app.get('/health', (_req, res) => {

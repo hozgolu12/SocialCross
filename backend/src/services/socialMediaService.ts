@@ -2,6 +2,7 @@ import OAuth from 'oauth-1.0a';
 import * as crypto from 'crypto';
 import axios from 'axios';
 import { ISocialAccount } from '../models/User';
+import { User } from '../models/User';
 import { config } from '../config/config';
 
 
@@ -32,9 +33,19 @@ export class SocialMediaService {
       secret: account.refreshToken as string
     };
 
-    const body = {
-      text:postData.content
+    // Prepare tweet body
+    const body: any = {
+      text: postData.content
+    };
+
+    // If images are present, upload them and attach media IDs
+    if (postData.images && postData.images.length > 0) {
+      const mediaIds = await SocialMediaService.uploadImagesToTwitter(account.accessToken, postData.images);
+      if (mediaIds.length > 0) {
+        body.media = { media_ids: mediaIds };
+      }
     }
+
     const request_data = {
       url: 'https://api.twitter.com/2/tweets',
       method: 'POST',
@@ -43,7 +54,6 @@ export class SocialMediaService {
 
     const headers = oauth.toHeader(oauth.authorize(request_data, token));
     console.log(headers);
-  
 
     const response = await axios.post(
       request_data.url,
@@ -52,11 +62,11 @@ export class SocialMediaService {
     );
 
     return response.data;
-    } catch (error: any) {
-      console.error('Twitter publish error:', error.response?.data || error);
-      throw new Error(`Twitter publish failed: ${error.response?.data?.errors?.[0]?.message || error.message}`);
-    }
+  } catch (error: any) {
+    console.error('Twitter publish error:', error.response?.data || error);
+    throw new Error(`Twitter publish failed: ${error.response?.data?.errors?.[0]?.message || error.message}`);
   }
+}
   static async publishToTelegram(account: ISocialAccount, postData: PostData): Promise<any> {
   try {
       const botToken = account.accessToken;
@@ -124,6 +134,22 @@ export class SocialMediaService {
       console.log("Reddit response:", response.data);
       return response.data;
     } catch (error: any) {
+      // Detect token expiration
+      if (
+        error.response?.status === 401 ||
+        (error.response?.data?.error === 'invalid_token')
+      ) {
+        // Mark Reddit account as inactive
+        const user = await User.findOne({ 'socialAccounts.id': account.id });
+        if (user) {
+          const redditAcc = user.socialAccounts.find(acc => acc.platform === 'reddit' && acc.id === account.id);
+          if (redditAcc) {
+            redditAcc.isActive = false;
+            await user.save();
+          }
+        }
+        throw new Error('Reddit token expired. Please reconnect your Reddit account.');
+      }
       console.error('Reddit publish error:', error.response?.data || error.message);
       throw new Error(`Reddit publish failed: ${error.response?.data?.message || error.message}`);
     }

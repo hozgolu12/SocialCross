@@ -1,7 +1,10 @@
-
 import express from 'express';
-import { User } from '../models/User';
 import { auth } from '../middleware/auth';
+import { User } from '../models/User';
+import axios from 'axios';
+import OAuth from 'oauth-1.0a';
+import * as crypto from 'crypto';
+import { config } from '../config/config';
 
 const router = express.Router();
 
@@ -70,6 +73,114 @@ router.patch('/profile', auth, async (req, res) => {
   } catch (error) {
     console.error('Update profile error:', error);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get reach stats
+router.get('/reach', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user!.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    let totalReach = 0;
+    const details: any[] = [];
+
+    for (const acc of user.socialAccounts) {
+      let followers = 0;
+      const platform = acc.platform.toLowerCase();
+
+      // 🐦 Twitter (OAuth 1.0a)
+      if (platform === 'twitter' && acc.id && acc.accessToken && acc.refreshToken) {
+        try {
+          const oauth = new OAuth({
+            consumer: {
+              key: config.TWITTER_CLIENT_ID as string,
+              secret: config.TWITTER_CLIENT_SECRET as string,
+            },
+            signature_method: 'HMAC-SHA1',
+            hash_function(base_string, key) {
+              return crypto.createHmac('sha1', key).update(base_string).digest('base64');
+            },
+          });
+
+          const token = {
+            key: acc.accessToken,
+            secret: acc.refreshToken,
+          };
+
+          const url = `https://api.twitter.com/1.1/users/show.json?user_id=${acc.id}`;
+          const request_data = {
+            url,
+            method: 'GET',
+          };
+
+          const headersObj = oauth.toHeader(oauth.authorize(request_data, token));
+          const headers = { ...headersObj };
+
+          const resp = await axios.get(url, { headers });
+          followers = resp.data.followers_count;
+          console.log(resp.data);
+        } catch (err: any) {
+          console.warn(`Twitter API error for ${acc.username}:`, err?.response?.data || err.message);
+        }
+      }
+
+      // 📢 Telegram (live fetch if accessToken & username, else fallback)
+      else if (platform === 'telegram') {
+        if (acc.accessToken && acc.id) {
+          try {
+            const resp = await axios.get(
+              `https://api.telegram.org/bot${acc.accessToken}/getChatMembersCount?chat_id=${acc.id}`
+            );
+            if (resp.data.ok) {
+              followers = resp.data.result;
+            }
+            console.log(resp.data);
+          } catch (err: any) {
+            console.warn(`Telegram API error for ${acc.username}:`, err?.response?.data || err.message);
+            followers = acc.memberCount || 0;
+          }
+        } else {
+          followers = acc.memberCount || 0;
+        }
+      }
+
+      // 👽 Reddit (live fetch if username, else fallback)
+      else if (platform === 'reddit') {
+        if (acc.username) {
+          try {
+            const resp = await axios.get(
+              `https://www.reddit.com/r/${acc.username}/about.json`,
+              { headers: { 'User-Agent': 'ReachChecker/1.0' } }
+            );
+            followers = resp.data.data.subscribers;
+            console.log(resp.data);
+          } catch (err: any) {
+            console.warn(`Reddit API error for ${acc.username}:`, err?.response?.data || err.message);
+            if (err.response?.status === 401) {
+            acc.isActive = false;
+            await user.save();
+           }
+            followers = acc.subscribers || 0;
+          }
+        } else {
+          followers = acc.subscribers || 0;
+        }
+      }
+
+      totalReach += followers;
+      details.push({
+        platform: acc.platform,
+        username: acc.username,
+        followers,
+      });
+    }
+
+    return res.json({ totalReach, details });
+  } catch (err) {
+    console.error('Reach fetch error:', err);
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    return res.status(500).json({ message: 'Failed to fetch reach', error: errorMessage });
   }
 });
 

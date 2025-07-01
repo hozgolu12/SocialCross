@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,6 +13,7 @@ import Posts from '@/pages/Posts';
 import TelegramSetup from '@/components/TelegramSetup';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import NotFound from "./pages/NotFound";
+import Reach from '@/pages/Reach';
 
 const queryClient = new QueryClient();
 
@@ -49,6 +49,7 @@ const App = () => (
                   <Posts />
                 </ProtectedRoute>
               } />
+              <Route path="/reach" element={<Reach />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

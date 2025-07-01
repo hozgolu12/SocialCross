@@ -1,4 +1,3 @@
-
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IAdaptedContent {
@@ -9,12 +8,18 @@ export interface IAdaptedContent {
   publishedAt?: Date;
   publishStatus: 'pending' | 'published' | 'failed';
   errorMessage?: string;
+  link?: string;
+  image?: string;
+  video?: string; 
+  formattedContent?: string;
+  explanation?: string;
 }
 
 export interface IPost extends Document {
   userId: mongoose.Types.ObjectId;
   originalContent: string;
   images: string[];
+  videos: string[];
   targetPlatforms: string[];
   adaptedContent: IAdaptedContent[];
   status: 'draft' | 'scheduled' | 'published' | 'failed';
@@ -39,7 +44,11 @@ const AdaptedContentSchema = new Schema<IAdaptedContent>({
     enum: ['pending', 'published', 'failed'],
     default: 'pending'
   },
-  errorMessage: String
+  errorMessage: String,
+  link: String,
+  image: String,
+  video: String, // <-- Add this
+  formattedContent: String
 });
 
 const PostSchema = new Schema<IPost>({
@@ -54,6 +63,7 @@ const PostSchema = new Schema<IPost>({
     maxlength: 2000
   },
   images: [String],
+  videos: [String],
   targetPlatforms: [{
     type: String,
     enum: ['twitter', 'telegram', 'reddit']

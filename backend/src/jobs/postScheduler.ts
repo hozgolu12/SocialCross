@@ -1,4 +1,3 @@
-
 import { Queue, Worker } from 'bullmq';
 import { Redis } from 'ioredis';
 import { Post } from '../models/Post';
@@ -55,6 +54,20 @@ const worker = new Worker('post-publishing', async (job) => {
             await SocialMediaService.publishToTelegram(socialAccount, postData);
             break;
           case 'reddit':
+            // Find the user's Reddit social account
+            const redditAccount = user.socialAccounts.find(
+              acc => acc.platform === 'reddit' && acc.isActive
+            );
+            // Check token expiry before posting
+            if (!redditAccount || (redditAccount.tokenExpiry && redditAccount.tokenExpiry < new Date())) {
+              if (redditAccount) {
+                redditAccount.isActive = false;
+                await user.save();
+              }
+              adaptedContent.publishStatus = 'failed';
+              adaptedContent.errorMessage = 'Reddit account disconnected or token expired. Please reconnect.';
+              continue;
+            }
             await SocialMediaService.publishToReddit(socialAccount, postData);
             break;
         }

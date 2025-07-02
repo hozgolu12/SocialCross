@@ -1,4 +1,3 @@
-
 import express from 'express';
 import passport from 'passport';
 import { User } from '../models/User';
@@ -200,6 +199,7 @@ router.get('/reddit/callback', async (req, res) => {
       platform: 'reddit' as const,
       id: redditUser.id,
       username: redditUser.name,
+      subredditName: req.body.subredditName || '', // <-- store subreddit name
       accessToken: tokenData.access_token,
       refreshToken: tokenData.refresh_token,
       tokenExpiry: new Date(Date.now() + tokenData.expires_in * 1000),

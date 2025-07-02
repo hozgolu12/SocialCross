@@ -24,6 +24,7 @@ router.get('/profile', auth, async (req, res) => {
       socialAccounts: user.socialAccounts.map(acc => ({
         platform: acc.platform,
         username: acc.username,
+        subredditName: acc.subredditName, // <-- Add this
         isActive: acc.isActive,
         connectedAt: acc.connectedAt
       })),
@@ -62,6 +63,7 @@ router.patch('/profile', auth, async (req, res) => {
       socialAccounts: user.socialAccounts.map(acc => ({
         platform: acc.platform,
         username: acc.username,
+        subredditName: acc.subredditName, // <-- Add this
         isActive: acc.isActive,
         connectedAt: acc.connectedAt
       })),
@@ -108,7 +110,7 @@ router.get('/reach', auth, async (req, res) => {
             secret: acc.refreshToken,
           };
 
-          const url = `https://api.twitter.com/1.1/users/show.json?user_id=${acc.id}`;
+          const url = `https://api.twitter.com/2/users/${acc.id}?user.fields=public_metrics`;
           const request_data = {
             url,
             method: 'GET',
@@ -145,22 +147,27 @@ router.get('/reach', auth, async (req, res) => {
         }
       }
 
-      // 👽 Reddit (live fetch if username, else fallback)
+      // 👽 Reddit (fetch subreddit subscribers)
       else if (platform === 'reddit') {
-        if (acc.username) {
+        // Check token expiry before making API call
+        if (acc.tokenExpiry && acc.tokenExpiry < new Date()) {
+          acc.isActive = false;
+          await user.save();
+          followers = acc.subscribers || 0;
+        } else if (acc.subredditName) {
           try {
             const resp = await axios.get(
-              `https://www.reddit.com/r/${acc.username}/about.json`,
-              { headers: { 'User-Agent': 'ReachChecker/1.0' } }
+              `https://www.reddit.com/r/${acc.subredditName}/about.json`,
+              { headers: { 'User-Agent': 'SocialCrossPost/1.0' } }
             );
             followers = resp.data.data.subscribers;
             console.log(resp.data);
           } catch (err: any) {
-            console.warn(`Reddit API error for ${acc.username}:`, err?.response?.data || err.message);
+            console.warn(`Reddit API error for ${acc.subredditName}:`, err?.response?.data || err.message);
             if (err.response?.status === 401) {
-            acc.isActive = false;
-            await user.save();
-           }
+              acc.isActive = false;
+              await user.save();
+            }
             followers = acc.subscribers || 0;
           }
         } else {
@@ -171,7 +178,7 @@ router.get('/reach', auth, async (req, res) => {
       totalReach += followers;
       details.push({
         platform: acc.platform,
-        username: acc.username,
+        username: acc.platform === 'reddit' ? acc.subredditName : acc.username, // Show subreddit name for Reddit
         followers,
       });
     }

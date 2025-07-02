@@ -1,12 +1,13 @@
 # SocialCross
 
-**SocialCross** is a full-stack platform for cross-posting content to multiple social media platforms with AI-powered content adaptation, scheduling, and analytics.
+**SocialCross** is a full-stack platform for cross-posting content to multiple social media platforms with AI-powered content creation, Content adaptation, Scheduling, and Reach analytics.
 
 ---
 
 ## Features
 
 - **User Authentication**: Secure JWT-based authentication.
+- **Email Verification System**: Verify whether the email is used by user or not.
 - **OAuth Integration**: Connect Twitter, Telegram, and Reddit accounts.
 - **AI Content Generation**: Use OpenAI to generate post content from prompts.
 - **Content Adaptation**: Automatically adapt content for each platform (Twitter, Telegram, Reddit).
@@ -117,6 +118,16 @@ Content is adapted for each platform using custom logic:
 - **Twitter**: Trims to 280 characters, adds hashtags, shortens links.
 - **Telegram**: Adds emojis, supports images/videos, and hashtags.
 - **Reddit**: Formats content in Markdown, includes links and images.
+
+---
+
+## Email Verification System
+
+- When a user registers, a verification email is sent with a unique link.
+- The user can log in for a limited grace period (e.g., 3 days) without verifying their email.
+- After the grace period, login is blocked until the user verifies their email.
+- Users can resend the verification email if needed.
+- Once the user clicks the verification link in their email, their account is marked as verified and full access is granted.
 
 ---
 

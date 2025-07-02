@@ -22,6 +22,9 @@ export interface IUser extends Document {
   name: string;
   avatar?: string;
   socialAccounts: ISocialAccount[];
+  emailVerified: boolean;
+  emailVerificationToken?: string;
+  emailVerificationExpires?: Date;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(password: string): Promise<boolean>;
@@ -66,7 +69,10 @@ const UserSchema = new Schema<IUser>({
     trim: true
   },
   avatar: String,
-  socialAccounts: [SocialAccountSchema]
+  socialAccounts: [SocialAccountSchema],
+  emailVerified: { type: Boolean, default: false },
+  emailVerificationToken: { type: String },
+  emailVerificationExpires: { type: Date }
 }, {
   timestamps: true
 });

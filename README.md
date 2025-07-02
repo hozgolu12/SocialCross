@@ -1,6 +1,6 @@
 # SocialCross
 
-**SocialCross** is a full-stack platform for cross-posting content to multiple social media platforms with AI-powered content adaptation, scheduling, and analytics.
+**SocialCross** is a full-stack platform for cross-posting content to multiple social media platforms with AI-powered content creation, Content adaptation, Scheduling, and Reach analytics.
 
 ---
 

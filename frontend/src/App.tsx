@@ -14,6 +14,8 @@ import TelegramSetup from '@/components/TelegramSetup';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import NotFound from "./pages/NotFound";
 import Reach from '@/pages/Reach';
+import VerifyEmail from '@/pages/VerifyEmail';
+import RedditSetup from "./pages/RedditSetup";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +52,8 @@ const App = () => (
                 </ProtectedRoute>
               } />
               <Route path="/reach" element={<Reach />} />
+              <Route path="/verify-email" element={<VerifyEmail />} />
+              <Route path="/accounts/reddit-setup" element={<RedditSetup />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

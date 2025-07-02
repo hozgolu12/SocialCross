@@ -43,7 +43,7 @@ router.post('/register', [
       },
     });
 
-    const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+    const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}&email=${encodeURIComponent(user.email)}`;
     await transporter.sendMail({
       to: user.email,
       subject: 'Verify your email for SocialCross',
@@ -112,19 +112,34 @@ router.post('/login', [
 
 // Verify Email
 router.get('/verify-email', async (req, res) => {
-  const { token } = req.query;
-  const user = await User.findOne({
+  const { token, email } = req.query;
+
+  // Try to find user by token and expiry
+  let user = await User.findOne({
     emailVerificationToken: token,
     emailVerificationExpires: { $gt: new Date() }
   });
-  if (!user) {
-    return res.status(400).json({ message: 'Invalid or expired token' });
+
+  if (user) {
+    user.emailVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpires = undefined;
+    await user.save();
+    return res.json({ message: 'Email verified successfully' });
   }
-  user.emailVerified = true;
-  user.emailVerificationToken = undefined;
-  user.emailVerificationExpires = undefined;
-  await user.save();
-  res.json({ message: 'Email verified successfully' });
+
+  // If not found, try to find user by email who is already verified
+  if (email) {
+    user = await User.findOne({
+      email: email.toString().toLowerCase(),
+      emailVerified: true
+    });
+    if (user) {
+      return res.json({ message: 'Email verified successfully' });
+    }
+  }
+
+  return res.status(400).json({ message: 'Invalid or expired token' });
 });
 
 // Resend Verification Email
@@ -147,7 +162,7 @@ router.post('/resend-verification', auth, async (req, res) => {
     },
   });
 
-  const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+  const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}&email=${encodeURIComponent(user.email)}`;
   await transporter.sendMail({
     to: user.email,
     subject: 'Verify your email for SocialCross',

@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { config } from '@/config';
 
 const Register = () => {
   const [name, setName] = useState('');
@@ -15,6 +16,7 @@ const Register = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { register, user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   if (user) {
     return <Navigate to="/" />;
@@ -25,15 +27,33 @@ const Register = () => {
     setIsLoading(true);
 
     try {
-      await register(name, email, password);
-      toast({
-        title: "Success",
-        description: "Account created successfully!",
+      const resp = await fetch(`${config.BACKEND_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, email, password }),
       });
-    } catch (error: any) {
+      const data = await resp.json();
+      if (resp.ok) {
+        toast({
+          title: "Registration Successful",
+          description: "User created successfully. Please check your email to verify your account."
+        });
+        setTimeout(() => {
+          navigate('/login');
+        }, 1500); // Wait 1.5 seconds before redirecting
+      } else {
+        toast({
+          title: "Registration Failed",
+          description: data.message || "An error occurred.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
       toast({
         title: "Error",
-        description: error.message,
+        description: "Network error. Please try again later.",
         variant: "destructive",
       });
     } finally {

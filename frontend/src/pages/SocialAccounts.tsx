@@ -25,34 +25,38 @@ const SocialAccounts = () => {
     reddit: { name: 'Reddit', color: 'bg-orange-500', icon: '🔴' },
   };
 
+  // 1. Handle OAuth callback ONLY ONCE on mount
   useEffect(() => {
-    fetchAccounts();
-    
-    // Handle OAuth callback messages
     const connected = searchParams.get('connected');
     const error = searchParams.get('error');
-    
+
     if (connected) {
       toast({
         title: "Success",
         description: `${connected} account connected successfully!`,
       });
-      // Clear URL params and refresh user data
+      // Clean the URL BEFORE refreshing user context
       window.history.replaceState({}, '', '/accounts');
-      refreshUser();
-      fetchAccounts();
     }
-    
+
     if (error) {
       toast({
         title: "Error",
         description: `Connection failed: ${error.replace(/_/g, ' ')}`,
         variant: "destructive",
       });
-      // Clear URL params
       window.history.replaceState({}, '', '/accounts');
     }
-  }, [searchParams]);
+    // Only run on mount
+    // eslint-disable-next-line
+  }, []); // <--- empty dependency array
+
+  // 2. Fetch accounts ONLY when user.socialAccounts changes
+  useEffect(() => {
+    if (!user) return;
+    setAccounts(user.socialAccounts || []);
+    setIsLoading(false);
+  }, [user?.socialAccounts]);
 
   const fetchAccounts = async () => {
     if (!token || !user) return;

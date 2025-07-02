@@ -136,14 +136,15 @@ router.get('/reach', auth, async (req, res) => {
             );
             if (resp.data.ok) {
               followers = resp.data.result;
+              acc.followersCount = followers; // Update followers count in account
             }
             console.log(resp.data);
           } catch (err: any) {
             console.warn(`Telegram API error for ${acc.username}:`, err?.response?.data || err.message);
-            followers = acc.memberCount || 0;
+            followers = acc.followersCount || 0;
           }
         } else {
-          followers = acc.memberCount || 0;
+          followers = acc.followersCount || 0;
         }
       }
 

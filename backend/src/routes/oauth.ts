@@ -219,11 +219,23 @@ router.get('/reddit/callback', async (req, res) => {
     delete req.session.userId;
     delete req.session.redditState;
     
-    res.redirect(`${config.FRONTEND_URL}/accounts?connected=reddit`);
+    res.redirect(`${config.FRONTEND_URL}/accounts/reddit-setup`);
   } catch (error) {
     console.error('Reddit OAuth callback error:', error);
     res.redirect(`${config.FRONTEND_URL}/accounts?error=reddit_connection_failed`);
   }
+});
+
+// Update subreddit name
+router.post('/reddit/subreddit', auth, async (req, res) => {
+  const { subredditName } = req.body;
+  const user = await User.findById(req.user!.id);
+  if (!user) return res.status(404).json({ message: 'User not found' });
+  const redditAcc = user.socialAccounts.find(acc => acc.platform === 'reddit');
+  if (!redditAcc) return res.status(400).json({ message: 'Reddit account not connected' });
+  redditAcc.subredditName = subredditName;
+  await user.save();
+  res.json({ message: 'Subreddit name saved' });
 });
 
 // Disconnect social account

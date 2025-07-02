@@ -75,8 +75,14 @@ const worker = new Worker('post-publishing', async (job) => {
         adaptedContent.publishStatus = 'published';
         adaptedContent.publishedAt = new Date();
       } catch (error: any) {
-        adaptedContent.publishStatus = 'failed';
-        adaptedContent.errorMessage = error.message;
+        if (error.response?.status === 429) {
+          adaptedContent.publishStatus = 'failed';
+          adaptedContent.errorMessage = 'Rate limit reached for this platform. Please try again later.';
+        } else {
+          adaptedContent.publishStatus = 'failed';
+          adaptedContent.errorMessage = error.message;
+        }
+        continue;
       }
     }
 

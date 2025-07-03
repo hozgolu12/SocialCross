@@ -35,20 +35,33 @@ const Posts = () => {
   };
 
   const handleRetry = async (postId: string) => {
-  try {
-      const response = await fetch(`${config.BACKEND_URL}/api/posts/${postId}/publish`, {
+    setIsLoading(true);
+    try {
+      const resp = await fetch(`${config.BACKEND_URL}/api/posts/retry`, {
         method: 'POST',
-        headers: {
+        headers: { 
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
-        }
+        },
+        body: JSON.stringify({ postId })
       });
-      if (response.ok) {
-        await fetchPosts(); // refresh the posts list
-      } else {
-        console.error('Retry failed');
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        throw new Error(data.message || 'Retry failed');
       }
-    } catch (err) {
-      console.error('Retry error:', err);
+      toast({
+        title: "Success",
+        description: data.message || "Post published successfully!"
+      });
+      await fetchPosts(); // Refresh the posts list
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to publish post.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 

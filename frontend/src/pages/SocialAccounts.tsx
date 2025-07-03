@@ -288,3 +288,23 @@ const SocialAccounts = () => {
 };
 
 export default SocialAccounts;
+
+import { toast } from "@/hooks/use-toast";
+
+export async function apiFetch(url: string, options: any = {}) {
+  const resp = await fetch(url, options);
+  if (resp.status === 401) {
+    toast({
+      title: "Reddit session refreshed",
+      description: "Your Reddit session was refreshed. Please try again.",
+      variant: "default",
+    });
+    // Do NOT remove Reddit account from UI!
+    return null;
+  }
+  if (!resp.ok) {
+    const data = await resp.json().catch(() => ({}));
+    throw new Error(data.message || "Request failed");
+  }
+  return resp.json();
+}

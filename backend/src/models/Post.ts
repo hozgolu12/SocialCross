@@ -35,7 +35,7 @@ const AdaptedContentSchema = new Schema<IAdaptedContent>({
     enum: ['twitter', 'telegram', 'reddit'],
     required: true
   },
-  content: { type: String, required: true },
+  content: { type: String, required: false },
   hashtags: [String],
   isApproved: { type: Boolean, default: false },
   publishedAt: Date,
@@ -59,7 +59,7 @@ const PostSchema = new Schema<IPost>({
   },
   originalContent: {
     type: String,
-    required: true,
+    required: false,
     maxlength: 2000
   },
   images: [String],

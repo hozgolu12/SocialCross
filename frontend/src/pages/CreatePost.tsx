@@ -57,10 +57,13 @@ const CreatePost = () => {
   };
 
   const handleCreatePost = async () => {
-    if (!content.trim() || platforms.length === 0) {
+    if (
+      (!content.trim() && images.length === 0 && videos.length === 0) ||
+      platforms.length === 0
+    ) {
       toast({
         title: "Error",
-        description: "Please enter content and select at least one platform",
+        description: "Please add content, images, or videos and select at least one platform",
         variant: "destructive",
       });
       return;
@@ -70,21 +73,24 @@ const CreatePost = () => {
 
     try {
       const formData = new FormData();
-      formData.append('content', content);
+      // If content is empty, send a placeholder
+      formData.append('content', content.trim() || 'Image post');
 
       platforms.forEach(platform => {
-        formData.append('platforms[]', platform); // ✅ Proper array form
+        formData.append('platforms[]', platform);
       });
 
       images.forEach((image) => {
-        formData.append('images', image);
+        formData.append('media', image);
+      });
+      videos.forEach((video) => {
+        formData.append('media', video);
       });
 
       const response = await fetch(`${config.BACKEND_URL}/api/posts/`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
-          // ❌ DO NOT set 'Content-Type': 'application/json' when using FormData
         },
         body: formData
       });
@@ -103,7 +109,7 @@ const CreatePost = () => {
 
       toast({
         title: "Success",
-        description: "Post created with AI adaptations!",
+        description: "Post created with content adaptations!",
       });
     } catch (error: any) {
       toast({
@@ -172,14 +178,16 @@ const CreatePost = () => {
         }
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to publish post');
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok || data.success === false) {
+        throw new Error(data.message || 'Failed to publish post');
       }
+
       toast({
         title: "Success",
         description: "Post published to selected platforms!",
       });
-      
       navigate('/posts');
     } catch (error: any) {
       toast({
@@ -187,6 +195,7 @@ const CreatePost = () => {
         description: error.message,
         variant: "destructive",
       });
+      return;
     }
   };
 
@@ -486,7 +495,15 @@ const CreatePost = () => {
                   
                   <Button
                     onClick={handleCreatePost}
-                    disabled={isLoading || !content.trim() || platforms.length === 0}
+                    disabled={
+                      isLoading ||
+                      ( // Only disable if NO content AND NO images AND NO videos
+                        !content.trim() &&
+                        images.length === 0 &&
+                        videos.length === 0
+                      ) ||
+                      platforms.length === 0
+                    }
                     className="w-full mt-6"
                   >
                     {isLoading ? 'Creating...' : 'Create & Preview'}

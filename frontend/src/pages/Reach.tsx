@@ -39,11 +39,11 @@ const Reach = () => {
       <div className="max-w-2xl mx-auto py-10">
         <Card>
           <CardHeader>
-            <CardTitle>Reach Details</CardTitle>
+            <CardTitle>Followers Details</CardTitle>
             <CardDescription>Followers/subscribers breakdown by platform</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold mb-4">Total Reach: {reach.totalReach}</div>
+            <div className="text-2xl font-bold mb-4">Total Followers: {reach.totalReach}</div>
             {/* Histogram */}
             <div className="w-full h-64 mb-8">
               <ResponsiveContainer width="100%" height="100%">

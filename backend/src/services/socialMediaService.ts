@@ -5,6 +5,7 @@ import FormData from 'form-data';
 import { ISocialAccount } from '../models/User';
 import { User } from '../models/User';
 import { config } from '../config/config';
+import { Types } from 'mongoose';
 
 
 export interface PostData {
@@ -110,6 +111,27 @@ export class SocialMediaService {
   }
 
   static async publishToReddit(account: ISocialAccount, postData: PostData): Promise<any> {
+
+    if (account.tokenExpiry && account.tokenExpiry < new Date()) {
+
+      try {
+        const user = await User.findOne({ 'socialAccounts._id': account.id });
+        if (!user) {
+          throw new Error(`User not found for account ID: ${account.id}`);
+        }
+        const newToken = await SocialMediaService.refreshRedditToken(account);
+        account.accessToken = newToken;
+        account.isActive = true;
+        account.tokenExpiry = new Date(Date.now() + 3600 * 1000);
+        await user.save();
+        console.log(`Refreshed Reddit token for ${account.username || account.id}`);
+      } catch (err) {
+        account.isActive = false;
+        console.error(`Failed to refresh Reddit token for ${account.username || account.id}`);
+      }
+    }
+
+
     let triedRefresh = false;
     while (true) {
       try {
@@ -327,6 +349,27 @@ export class SocialMediaService {
   }
 
   private static async uploadMediaToReddit(account: ISocialAccount, mediaUrl: string): Promise<string> {
+
+    if (account.tokenExpiry && account.tokenExpiry < new Date()) {
+
+      try {
+        const user = await User.findOne({ 'socialAccounts._id': new Types.ObjectId(account.id) });
+        if (!user) {
+          throw new Error(`User not found for account ID: ${account.id}`);
+        }
+        const newToken = await SocialMediaService.refreshRedditToken(account);
+        account.accessToken = newToken;
+        account.isActive = true;
+        account.tokenExpiry = new Date(Date.now() + 3600 * 1000);
+        await user.save();
+        console.log(`Refreshed Reddit token for ${account.username || account.id}`);
+      } catch (err) {
+        account.isActive = false;
+        console.error(`Failed to refresh Reddit token for ${account.username || account.id}`);
+      }
+    }
+
+
     // Download the media
     const mediaResponse = await axios.get(mediaUrl, { responseType: 'arraybuffer' });
     const mediaBuffer = Buffer.from(mediaResponse.data);
@@ -336,7 +379,10 @@ export class SocialMediaService {
     try {
       const leaseResp = await axios.post(
         'https://oauth.reddit.com/api/media/asset.json',
-        { filepath: 'media.png' },
+        {
+          type: mediaUrl.match(/\.(mp4|mov|webm)$/i) ? 'video' : 'image',
+          name: `reddit_upload_${Date.now()}`
+        },
         {
           headers: {
             'Authorization': `Bearer ${account.accessToken}`,
@@ -358,7 +404,7 @@ export class SocialMediaService {
     // Step 2: Upload to S3
     const form = new FormData();
     Object.entries(fields).forEach(([key, value]) => form.append(key, value as string));
-    form.append('file', mediaBuffer, { filename: 'media.png' });
+    form.append('file', mediaBuffer, { filename: `reddit_upload_${Date.now()}.${mediaUrl.split('.').pop()}` });
 
     await axios.post(uploadUrl, form, { headers: form.getHeaders() });
 
@@ -366,7 +412,7 @@ export class SocialMediaService {
     return args.asset_id;
   }
 
-   static async refreshRedditToken(account: ISocialAccount): Promise<string> {
+  static async refreshRedditToken(account: ISocialAccount): Promise<string> {
     try {
       const auth = Buffer.from(`${config.REDDIT_CLIENT_ID}:${config.REDDIT_CLIENT_SECRET}`).toString('base64');
       
@@ -383,10 +429,13 @@ export class SocialMediaService {
         }
       );
       
+      console.log('Reddit new access token:', response.data.access_token); // <-- Add this line
       return response.data.access_token;
     } catch (error: any) {
       console.error('Reddit token refresh error:', error);
       throw new Error('Failed to refresh Reddit token');
     }
   }
+
+  
 }

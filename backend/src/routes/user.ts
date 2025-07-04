@@ -5,6 +5,7 @@ import axios from 'axios';
 import OAuth from 'oauth-1.0a';
 import * as crypto from 'crypto';
 import { config } from '../config/config';
+import { SocialMediaService } from '../services/socialMediaService';
 
 const router = express.Router();
 
@@ -152,9 +153,18 @@ router.get('/reach', auth, async (req, res) => {
       else if (platform === 'reddit') {
         // Check token expiry before making API call
         if (acc.tokenExpiry && acc.tokenExpiry < new Date()) {
-          acc.isActive = false;
-          await user.save();
-          followers = acc.subscribers || 0;
+
+          try {
+            const newToken = await SocialMediaService.refreshRedditToken(acc);
+            acc.accessToken = newToken;
+            acc.isActive = true;
+            acc.tokenExpiry = new Date(Date.now() + 3600 * 1000);
+            await user.save();
+            console.log(`Refreshed Reddit token for ${acc.username || acc.id}`);
+          } catch (err) {
+            acc.isActive = false;
+            console.error(`Failed to refresh Reddit token for ${acc.username || acc.id}`);
+          }
         } else if (acc.subredditName) {
           try {
             const resp = await axios.get(

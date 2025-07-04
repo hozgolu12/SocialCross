@@ -159,6 +159,32 @@ const SocialAccounts = () => {
     }
   };
 
+  const handleReconnect = async (platform: string) => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/social/reddit/refresh`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: `${platform} account reconnected successfully!`,
+        });
+        refreshUser();
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to reconnect account');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: (error as Error).message,
+        variant: "destructive",
+      });
+    }
+  };
+
 
   const activeAccounts = accounts.filter(acc => acc.isActive);
 
@@ -249,7 +275,13 @@ const SocialAccounts = () => {
                         )}
                       </div>
                       <div className="flex space-x-2">
-                        {account ? (
+                        {account && account.platform === 'reddit' && !account.isActive ? (
+                          <Button
+                            onClick={() => handleReconnect(platform)}
+                          >
+                            Reconnect
+                          </Button>
+                        ) : account ? (
                           <Button
                             variant="outline"
                             onClick={() => handleDisconnect(platform)}

@@ -8,6 +8,7 @@ import { Request, Response } from 'express';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
 import { auth } from '../middleware/auth';
+import { SocialMediaService } from '../services/socialMediaService';
 
 const router = express.Router();
 
@@ -74,7 +75,7 @@ router.post('/login', [
     return res.status(400).json({ errors: errors.array() });
   }
 
-  passport.authenticate('local', { session: false }, function(err:any, user:any, info:any) {
+  passport.authenticate('local', { session: false }, async function(err:any, user:any, info:any) {
     console.log(err, user, info);
     if (err) {
       return res.status(500).json({ message: 'Authentication error' });
@@ -93,8 +94,37 @@ router.post('/login', [
       // else: allow login, but warn user in frontend
     }
 
+    // Refresh expired tokens for all social accounts
+    if (user.socialAccounts && user.socialAccounts.length > 0) {
+      let updated = false;
+      for (const acc of user.socialAccounts) {
+        if (
+          acc.platform === 'reddit' &&
+          acc.tokenExpiry &&
+          acc.tokenExpiry < new Date() &&
+          acc.refreshToken
+        ) {
+          try {
+            const newToken = await SocialMediaService.refreshRedditToken(acc);
+            acc.accessToken = newToken;
+            acc.isActive = true;
+            acc.tokenExpiry = new Date(Date.now() + 3600 * 1000);
+            updated = true;
+            console.log(`Refreshed Reddit token for ${acc.username || acc.id}`);
+          } catch (err) {
+            acc.isActive = false;
+            console.error(`Failed to refresh Reddit token for ${acc.username || acc.id}`);
+          }
+        }
+        // Add similar logic for other platforms if needed
+      }
+      if (updated) {
+        await user.save();
+      }
+    }
+
     const token = jwt.sign({ id: user._id }, config.JWT_SECRET, {
-      expiresIn: '7d'
+      expiresIn: Number(config.JWT_EXPIRES_IN)
     });
 
     res.json({

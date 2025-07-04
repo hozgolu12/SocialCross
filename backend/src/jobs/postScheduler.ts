@@ -30,7 +30,7 @@ const worker = new Worker('post-publishing', async (job) => {
       if (!adaptedContent.isApproved) continue;
 
       const socialAccount = user.socialAccounts.find(
-        acc => acc.platform === adaptedContent.platform && acc.isActive
+        acc => acc.platform === adaptedContent.platform
       );
 
       if (!socialAccount) {
@@ -54,21 +54,16 @@ const worker = new Worker('post-publishing', async (job) => {
             await SocialMediaService.publishToTelegram(socialAccount, postData);
             break;
           case 'reddit':
-            // Find the user's Reddit social account
+            // Find the user's Reddit social account (regardless of isActive)
             const redditAccount = user.socialAccounts.find(
-              acc => acc.platform === 'reddit' && acc.isActive
+              acc => acc.platform === 'reddit'
             );
-            // Check token expiry before posting
-            if (!redditAccount || (redditAccount.tokenExpiry && redditAccount.tokenExpiry < new Date())) {
-              if (redditAccount) {
-                redditAccount.isActive = false;
-                await user.save();
-              }
+            if (!redditAccount) {
               adaptedContent.publishStatus = 'failed';
-              adaptedContent.errorMessage = 'Reddit account disconnected or token expired. Please reconnect.';
+              adaptedContent.errorMessage = 'Reddit account not connected';
               continue;
             }
-            await SocialMediaService.publishToReddit(socialAccount, postData);
+            await SocialMediaService.publishToReddit(redditAccount, postData);
             break;
         }
 

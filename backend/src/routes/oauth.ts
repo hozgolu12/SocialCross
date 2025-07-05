@@ -3,8 +3,9 @@ import passport from 'passport';
 import { User } from '../models/User';
 import { config } from '../config/config';
 import { auth } from '../middleware/auth';
-import { getRedditAuthUrl, exchangeRedditCode, getRedditUser } from '../config/passport';
-import axios from 'axios';
+import { TelegramApi } from '../services/api/TelegramApi';
+import { RedditApi } from '../services/api/RedditApi';
+import { TwitterApi } from '../services/api/TwitterApi';
 
 const router = express.Router();
 
@@ -39,7 +40,6 @@ router.get('/twitter', (req, res, next) => {
 router.get('/twitter/callback', passport.authenticate('twitter', { session: false }), 
   async (req, res) => {
     try {
-      console.log(req);
       const profile = req.user as any;
       const userId = req.session.userId;
       
@@ -51,34 +51,19 @@ router.get('/twitter/callback', passport.authenticate('twitter', { session: fals
         return res.redirect(`${config.FRONTEND_URL}/accounts?error=missing_user_id`);
       }
 
-      const user = await User.findById(userId);
-      if (!user) {
-        console.error('User not found with ID:', userId);
-        return res.redirect(`${config.FRONTEND_URL}/accounts?error=user_not_found`);
+      // The user object returned by Passport's deserializeUser (if successful) or the result from handleOAuthCallback
+      // should contain the updated user or the profile data for a new user.
+      // We need to check if req.user is a full user object or the temporary profile data.
+      if (profile && profile.profile && profile.token && profile.tokenSecret) {
+        // This means it's the temporary profile data from passport.ts for a new user
+        // This case should ideally be handled by passport.ts if a new user needs to be created
+        // For now, we'll redirect with an error as this flow expects an existing user.
+        console.error('Twitter callback: New user detected in OAuth callback, but expected existing user.');
+        return res.redirect(`${config.FRONTEND_URL}/accounts?error=twitter_new_user_unhandled`);
       }
 
-      // Add or update Twitter account
-      const existingAccountIndex = user.socialAccounts.findIndex(
-        acc => acc.platform === 'twitter'
-      );
-
-      const twitterAccount = {
-        platform: 'twitter' as const,
-        id: profile.profile.id,
-        username: profile.profile.username,
-        accessToken: profile.token,
-        refreshToken: profile.tokenSecret,
-        isActive: true,
-        connectedAt: new Date()
-      };
-
-      if (existingAccountIndex >= 0) {
-        user.socialAccounts[existingAccountIndex] = twitterAccount;
-      } else {
-        user.socialAccounts.push(twitterAccount);
-      }
-
-      await user.save();
+      // If we reach here, it means req.user is likely the full user object from deserializeUser
+      // or the handleOAuthCallback successfully updated an existing user.
       delete req.session.userId;
 
       res.redirect(`${config.FRONTEND_URL}/accounts?connected=twitter`);
@@ -107,14 +92,8 @@ router.get('/telegram', async (req, res) => {
   }
   
   try {
-    // Verify bot token and get bot info
-    const botResponse = await axios.get(`https://api.telegram.org/bot${botToken}/getMe`);
-    
-    if (!botResponse.data.ok) {
-      return res.redirect(`${config.FRONTEND_URL}/accounts?error=invalid_bot_token`);
-    }
-    
-    const botInfo = botResponse.data.result;
+    const telegramApi = new TelegramApi(botToken);
+    const botInfo = await telegramApi.getUserProfile(); // Use the new method
     
     const user = await User.findById(userId);
     if (!user) {
@@ -161,7 +140,7 @@ router.get('/reddit', (req, res) => {
   const state = `${userId}_${Date.now()}`;
   req.session.redditState = state;
   
-  const authUrl = getRedditAuthUrl(state);
+  const authUrl = RedditApi.getAuthUrl(state); // Use the new static method
   res.redirect(authUrl);
 });
 
@@ -179,11 +158,9 @@ router.get('/reddit/callback', async (req, res) => {
       return res.redirect(`${config.FRONTEND_URL}/accounts?error=invalid_state`);
     }
     
-    // Exchange code for access token
-    const tokenData = await exchangeRedditCode(code as string);
-    
-    // Get user info
-    const redditUser = await getRedditUser(tokenData.access_token);
+    // Exchange code for access token and get user info using RedditApi
+    const tokenData = await RedditApi.exchangeCodeForTokens(code as string);
+    const redditUser = await RedditApi.getUserInfo(tokenData.access_token);
     
     const user = await User.findById(userId);
     if (!user) {

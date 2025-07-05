@@ -1,33 +1,5 @@
-import mongoose, { Document, Schema } from 'mongoose';
-
-export interface IAdaptedContent {
-  platform: 'twitter' | 'telegram' | 'reddit';
-  content: string;
-  hashtags?: string[];
-  isApproved: boolean;
-  publishedAt?: Date;
-  publishStatus: 'pending' | 'published' | 'failed';
-  errorMessage?: string;
-  link?: string;
-  image?: string;
-  video?: string; 
-  formattedContent?: string;
-  explanation?: string;
-}
-
-export interface IPost extends Document {
-  userId: mongoose.Types.ObjectId;
-  originalContent: string;
-  images: string[];
-  videos: string[];
-  targetPlatforms: string[];
-  adaptedContent: IAdaptedContent[];
-  status: 'draft' | 'scheduled' | 'published' | 'failed';
-  scheduledAt?: Date;
-  publishedAt?: Date;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import mongoose, { Schema } from 'mongoose';
+import { IAdaptedContent, IPost } from '../types';
 
 const AdaptedContentSchema = new Schema<IAdaptedContent>({
   platform: {
@@ -47,7 +19,7 @@ const AdaptedContentSchema = new Schema<IAdaptedContent>({
   errorMessage: String,
   link: String,
   image: String,
-  video: String, // <-- Add this
+  video: String, 
   formattedContent: String
 });
 

@@ -1,13 +1,5 @@
-export interface AdaptedContent {
-  content: string;
-  hashtags: string[];
-  explanation: string;
-  link?: string;
-  image?: string;
-  video?: string; 
-  formattedContent?: string;
-}
 
+import { AdaptedContent } from '../types';
 // Helper to extract first link and image URL from content
 function extractLinkAndImage(content: string): { cleanedContent: string; link?: string; image?: string } {
   const urlRegex = /(https?:\/\/[^\s]+)/g;

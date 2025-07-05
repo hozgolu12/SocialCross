@@ -14,7 +14,7 @@
 - **Image & Video Upload**: Upload and preview images and videos (Cloudinary integration).
 - **Post Scheduling**: Schedule posts for future publishing (BullMQ + Redis).
 - **Content Preview**: Preview adapted content before publishing.
-- **Followers**: View follower/subscriber counts for connected accounts.
+- **Reach Analytics**:  Unified insights into likes, retweets, replies, Reddit karma, and Telegram member counts.
 - **Comprehensive Error Handling**: Robust error and validation handling.
 - **Responsive UI**: Built with React and Tailwind CSS.
 

@@ -171,7 +171,7 @@ const Dashboard = () => {
                   <Users className="h-8 w-8 text-orange-600 mr-4" />
                   <div>
                     <h3 className="font-semibold">Reach</h3>
-                    <p className="text-sm text-gray-600">Total followers/subscribers</p>
+                    <p className="text-sm text-gray-600">Audience Size</p>
                   </div>
                 </CardContent>
               </Card>

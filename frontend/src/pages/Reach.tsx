@@ -7,14 +7,20 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 
 interface ReachDetail {
   platform: string;
-  followers: number;
+  audienceSize: number;
   username: string;
   subredditName?: string; // Added subredditName here
+  engagement?: { // New field for engagement metrics
+    likes?: number;
+    retweets?: number;
+    replies?: number;
+    karma?: number;
+  };
 }
 
 const Reach = () => {
   const { token } = useAuth();
-  const [reach, setReach] = useState<{ totalReach: number, details: ReachDetail[] }>({ totalReach: 0, details: [] });
+  const [reach, setReach] = useState<{ totalAudienceSize: number, details: ReachDetail[] }>({ totalAudienceSize: 0, details: [] });
 
   useEffect(() => {
     const fetchReach = async () => {
@@ -39,11 +45,11 @@ const Reach = () => {
       <div className="max-w-2xl mx-auto py-10">
         <Card>
           <CardHeader>
-            <CardTitle>Followers Details</CardTitle>
-            <CardDescription>Followers/subscribers breakdown by platform</CardDescription>
+            <CardTitle>Reach Analytics</CardTitle>
+            <CardDescription>Audience size and engagement breakdown by platform</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold mb-4">Total Followers: {reach.totalReach}</div>
+            <div className="text-2xl font-bold mb-4">Total Audience Size: {reach.totalAudienceSize}</div>
             {/* Histogram */}
             <div className="w-full h-64 mb-8">
               <ResponsiveContainer width="100%" height="100%">
@@ -53,18 +59,37 @@ const Reach = () => {
                   <YAxis allowDecimals={false} />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="followers" fill="#2563eb" name="Followers/Subscribers" />
+                  <Bar dataKey="audienceSize" fill="#2563eb" name="Audience Size" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
             <ul className="space-y-2">
               {reach.details.map((d) => (
                 <li key={d.platform}>
-                  <span className="font-semibold">{d.platform}:</span> {d.followers} (
+                  <span className="font-semibold">{d.platform}:</span> {d.audienceSize} (
                   <span>
                     {d.platform === 'reddit' ? d.subredditName : d.username}
                   </span>
                   )
+                  {d.engagement && (
+                    <div className="ml-4 text-sm text-gray-600">
+                      {d.platform === 'twitter' && (
+                        <>
+                          Likes: {d.engagement.likes}, Retweets: {d.engagement.retweets}, Replies: {d.engagement.replies}
+                        </>
+                      )}
+                      {d.platform === 'reddit' && (
+                        <>
+                          Karma: {d.engagement.karma}
+                        </>
+                      )}
+                      {d.platform === 'telegram' && (
+                        <>
+                          Members: {d.audienceSize}
+                        </>
+                      )}
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>

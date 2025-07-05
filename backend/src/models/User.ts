@@ -1,34 +1,6 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import bcrypt from 'bcryptjs';
-
-export interface ISocialAccount {
-  platform: 'twitter' | 'telegram' | 'reddit';
-  id: string;
-  username: string;
-  accessToken: string;
-  refreshToken?: string;
-  tokenExpiry?: Date;
-  isActive: boolean;
-  connectedAt: Date;
-  followersCount?: number;   // Twitter, Instagram, etc.
-  memberCount?: number;      // Telegram groups/channels
-  subscribers?: number;      // Reddit subreddits
-  subredditName?: string;
-}
-
-export interface IUser extends Document {
-  email: string;
-  password: string;
-  name: string;
-  avatar?: string;
-  socialAccounts: ISocialAccount[];
-  emailVerified: boolean;
-  emailVerificationToken?: string;
-  emailVerificationExpires?: Date;
-  createdAt: Date;
-  updatedAt: Date;
-  comparePassword(password: string): Promise<boolean>;
-}
+import { ISocialAccount, IUser } from '../types';
 
 const SocialAccountSchema = new Schema<ISocialAccount>({
   platform: {

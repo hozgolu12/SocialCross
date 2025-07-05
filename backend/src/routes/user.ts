@@ -1,10 +1,9 @@
 import express from 'express';
 import { auth } from '../middleware/auth';
 import { User } from '../models/User';
-import axios from 'axios';
-import OAuth from 'oauth-1.0a';
-import * as crypto from 'crypto';
-import { config } from '../config/config';
+import { TwitterApi } from '../services/api/TwitterApi';
+import { TelegramApi } from '../services/api/TelegramApi';
+import { RedditApi } from '../services/api/RedditApi';
 import { SocialMediaService } from '../services/socialMediaService';
 
 const router = express.Router();
@@ -85,116 +84,55 @@ router.get('/reach', auth, async (req, res) => {
     const user = await User.findById(req.user!.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    let totalReach = 0;
+    let totalAudienceSize = 0;
     const details: any[] = [];
 
     for (const acc of user.socialAccounts) {
-      let followers = 0;
+      let audienceSize = 0;
+      let engagement: any = {}; // Initialize engagement object
       const platform = acc.platform.toLowerCase();
 
-      // 🐦 Twitter (OAuth 1.0a)
-      if (platform === 'twitter' && acc.id && acc.accessToken && acc.refreshToken) {
-        try {
-          const oauth = new OAuth({
-            consumer: {
-              key: config.TWITTER_CLIENT_ID as string,
-              secret: config.TWITTER_CLIENT_SECRET as string,
-            },
-            signature_method: 'HMAC-SHA1',
-            hash_function(base_string, key) {
-              return crypto.createHmac('sha1', key).update(base_string).digest('base64');
-            },
-          });
-
-          const token = {
-            key: acc.accessToken,
-            secret: acc.refreshToken,
-          };
-
-          const url = `https://api.twitter.com/2/users/${acc.id}?user.fields=public_metrics`;
-          const request_data = {
-            url,
-            method: 'GET',
-          };
-
-          const headersObj = oauth.toHeader(oauth.authorize(request_data, token));
-          const headers = { ...headersObj };
-
-          const resp = await axios.get(url, { headers });
-          followers = resp.data.followers_count;
-          console.log(resp.data);
-        } catch (err: any) {
-          console.warn(`Twitter API error for ${acc.username}:`, err?.response?.data || err.message);
+      try {
+        if (platform === 'twitter') {
+          const twitterApi = new TwitterApi(acc.accessToken, acc.refreshToken as string);
+          const profile = await twitterApi.getUserProfile(acc.id);
+          audienceSize = profile.followers_count;
+          engagement = await twitterApi.getRecentTweetsEngagement(acc.id);
+        } else if (platform === 'telegram') {
+          const telegramApi = new TelegramApi(acc.accessToken);
+          audienceSize = await telegramApi.getChatMembersCount(acc.id);
+        } else if (platform === 'reddit') {
+          // Ensure token is refreshed before fetching subreddit subscribers
+          if (acc.tokenExpiry && new Date() > new Date(acc.tokenExpiry)) {
+            await SocialMediaService.refreshRedditToken(acc);
+          }
+          const redditApi = new RedditApi(acc.accessToken, acc.refreshToken as string);
+          if (acc.subredditName) {
+            audienceSize = await redditApi.getSubredditSubscribers(acc.subredditName);
+          } else {
+            // If no subredditName, try to get user's own follower count (if applicable, or default to 0)
+            const userProfile = await redditApi.getUserProfile(acc.username);
+            audienceSize = userProfile.total_karma; // Example: using total_karma as a proxy for 'reach'
+          }
         }
+      } catch (err: any) {
+        console.warn(`API error for ${platform} account ${acc.username || acc.id}:`, err?.response?.data || err.message);
+        // Fallback to stored count if API call fails
+        if (platform === 'twitter') audienceSize = acc.followersCount || 0;
+        else if (platform === 'telegram') audienceSize = acc.memberCount || 0;
+        else if (platform === 'reddit') audienceSize = acc.subscribers || 0;
       }
 
-      // 📢 Telegram (live fetch if accessToken & username, else fallback)
-      else if (platform === 'telegram') {
-        if (acc.accessToken && acc.id) {
-          try {
-            const resp = await axios.get(
-              `https://api.telegram.org/bot${acc.accessToken}/getChatMembersCount?chat_id=${acc.id}`
-            );
-            if (resp.data.ok) {
-              followers = resp.data.result;
-              acc.followersCount = followers; // Update followers count in account
-            }
-            console.log(resp.data);
-          } catch (err: any) {
-            console.warn(`Telegram API error for ${acc.username}:`, err?.response?.data || err.message);
-            followers = acc.followersCount || 0;
-          }
-        } else {
-          followers = acc.followersCount || 0;
-        }
-      }
-
-      // 👽 Reddit (fetch subreddit subscribers)
-      else if (platform === 'reddit') {
-        // Check token expiry before making API call
-        if (acc.tokenExpiry && acc.tokenExpiry < new Date()) {
-
-          try {
-            const newToken = await SocialMediaService.refreshRedditToken(acc);
-            acc.accessToken = newToken;
-            acc.isActive = true;
-            acc.tokenExpiry = new Date(Date.now() + 3600 * 1000);
-            await user.save();
-            console.log(`Refreshed Reddit token for ${acc.username || acc.id}`);
-          } catch (err) {
-            acc.isActive = false;
-            console.error(`Failed to refresh Reddit token for ${acc.username || acc.id}`);
-          }
-        } else if (acc.subredditName) {
-          try {
-            const resp = await axios.get(
-              `https://www.reddit.com/r/${acc.subredditName}/about.json`,
-              { headers: { 'User-Agent': 'SocialCrossPost/1.0' } }
-            );
-            followers = resp.data.data.subscribers;
-            console.log(resp.data);
-          } catch (err: any) {
-            console.warn(`Reddit API error for ${acc.subredditName}:`, err?.response?.data || err.message);
-            if (err.response?.status === 401) {
-              acc.isActive = false;
-              await user.save();
-            }
-            followers = acc.subscribers || 0;
-          }
-        } else {
-          followers = acc.subscribers || 0;
-        }
-      }
-
-      totalReach += followers;
+      totalAudienceSize += audienceSize;
       details.push({
         platform: acc.platform,
-        username: acc.platform === 'reddit' ? acc.subredditName : acc.username, // Show subreddit name for Reddit
-        followers,
+        username: acc.platform === 'reddit' ? acc.subredditName : acc.username,
+        audienceSize,
+        engagement,
       });
     }
 
-    return res.json({ totalReach, details });
+    return res.json({ totalAudienceSize, details });
   } catch (err) {
     console.error('Reach fetch error:', err);
     const errorMessage = err instanceof Error ? err.message : String(err);

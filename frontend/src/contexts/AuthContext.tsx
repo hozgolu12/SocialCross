@@ -1,4 +1,5 @@
 
+import { config } from '../config';
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface User {
@@ -48,7 +49,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchUser = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/user/profile', {
+      const response = await fetch(`${config.BACKEND_URL}/api/user/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -80,7 +81,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const login = async (email: string, password: string) => {
-    const response = await fetch('http://localhost:5000/api/auth/login', {
+    const response = await fetch(`${config.BACKEND_URL}/api/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -100,7 +101,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const register = async (name: string, email: string, password: string) => {
-    const response = await fetch("http://localhost:5000/api/auth/register", {
+    const response = await fetch(`${config.BACKEND_URL}/api/auth/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

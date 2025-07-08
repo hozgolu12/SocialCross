@@ -9,7 +9,8 @@
 - **User Authentication**: Secure JWT-based authentication.
 - **Email Verification System**: Verify whether the email is used by user or not.
 - **OAuth Integration**: Connect Twitter, Telegram, and Reddit accounts.
-- **AI Content Generation**: Use OpenAI to generate post content from prompts.
+- **AI Content Generation(User)**: Use OpenAI to generate post content from prompts.
+- **AI Content Generation(Business)**: Use OpenAI to generate post content from business contexts.
 - **Content Adaptation**: Automatically adapt content for each platform (Twitter, Telegram, Reddit).
 - **Image & Video Upload**: Upload and preview images and videos (Cloudinary integration).
 - **Post Scheduling**: Schedule posts for future publishing (BullMQ + Redis).
@@ -158,6 +159,32 @@ See `backend/src/jobs/postScheduler.ts` for implementation.
 - Input validation and sanitization
 
 ---
+
+# Python Microservice for Logo Analysis
+
+## Setup
+
+1. Install Python dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+2. Install Tesseract OCR:
+   - **Windows**: Download from https://github.com/UB-Mannheim/tesseract/wiki
+   - **macOS**: `brew install tesseract`
+   - **Ubuntu/Debian**: `sudo apt-get install tesseract-ocr`
+
+3. Run the service:
+```bash
+python app.py
+```
+
+The service will run on http://localhost:5001
+
+## Endpoints
+
+- `POST /analyze-logo`: Analyzes uploaded logo image
+- `GET /health`: Health check endpoint
 
 ## Testing
 

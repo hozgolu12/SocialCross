@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { LogOut, Plus, Settings, FileText, Menu, Users, LayoutDashboard } from 'lucide-react';
+import { LogOut, Plus, Settings, FileText, Menu, Users, LayoutDashboard, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 
 const Navbar = () => {
@@ -13,6 +13,7 @@ const Navbar = () => {
     { path: '/', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/create', label: 'Create Post', icon: Plus },
     { path: '/posts', label: 'Posts', icon: FileText },
+    { path: '/ai-generator', label: 'AI Generator', icon: Sparkles },
     { path: '/accounts', label: 'Social Accounts', icon: Settings },
     { path: '/reach', label: 'Reach', icon: Users },
   ];

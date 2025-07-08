@@ -19,6 +19,9 @@ export const config = {
   
   // OpenAI
   OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+
+  // Python Microservice
+  PYTHON_SERVICE_URL: process.env.PYTHON_SERVICE_URL || 'http://localhost:5001',
   
   // Twitter API 
   TWITTER_CLIENT_ID: process.env.TWITTER_CLIENT_ID,

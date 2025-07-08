@@ -16,6 +16,7 @@ import NotFound from "./pages/NotFound";
 import Reach from '@/pages/Reach';
 import VerifyEmail from '@/pages/VerifyEmail';
 import RedditSetup from "./pages/RedditSetup";
+import AIContentGenerator from '@/pages/AIContentGenerator';
 
 const queryClient = new QueryClient();
 
@@ -54,6 +55,11 @@ const App = () => (
               <Route path="/reach" element={<Reach />} />
               <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/accounts/reddit-setup" element={<RedditSetup />} />
+              <Route path="/ai-generator" element={
+                <ProtectedRoute>
+                  <AIContentGenerator />
+                </ProtectedRoute>
+              } />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

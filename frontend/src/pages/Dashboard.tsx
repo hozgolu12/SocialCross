@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import Navbar from '@/components/Navbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Users, FileText, Settings } from 'lucide-react';
+import { Plus, Users, FileText, Settings, Sparkles } from 'lucide-react';
 import { config } from '@/config';
 
 const Dashboard = () => {
@@ -148,6 +148,18 @@ const Dashboard = () => {
                   <div>
                     <h3 className="font-semibold">Social Accounts</h3>
                     <p className="text-sm text-gray-600">{stats.connectedAccounts} connected</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+
+             <Link to="/ai-generator">
+              <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                <CardContent className="flex items-center p-6">
+                  <Sparkles className="h-8 w-8 text-purple-600 mr-4" />
+                  <div>
+                    <h3 className="font-semibold">AI Generator</h3>
+                    <p className="text-sm text-gray-600">Smart content</p>
                   </div>
                 </CardContent>
               </Card>

@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import passport from 'passport';
 import { config } from './config/config';
+import aiContentRoutes from './routes/ai-content';
 import { connectDB } from './config/database';
 import { initializePassport } from './config/passport';
 import { errorHandler } from './middleware/errorHandler';
@@ -62,6 +63,7 @@ app.use('/api/posts', postRoutes);
 app.use('/api/social', socialRoutes);
 app.use('/api/oauth', oauthRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/ai-content', aiContentRoutes);
 
 // Health check
 app.get('/health', (_req, res) => {

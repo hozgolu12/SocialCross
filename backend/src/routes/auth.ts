@@ -105,14 +105,9 @@ router.post('/login', [
           acc.refreshToken
         ) {
           try {
-            const newToken = await SocialMediaService.refreshRedditToken(acc);
-            if (newToken) {
-            acc.accessToken = newToken;
-            acc.isActive = true;
-            acc.tokenExpiry = new Date(Date.now() + 3600 * 1000);
+            await SocialMediaService.refreshRedditToken(acc);
             updated = true;
             console.log(`Refreshed Reddit token for ${acc.username || acc.id}`);
-            }
           } catch (err) {
             acc.isActive = false;
             console.error(`Failed to refresh Reddit token for ${acc.username || acc.id}`);

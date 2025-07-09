@@ -43,29 +43,11 @@ const worker = new Worker('post-publishing', async (job) => {
         const postData = {
           content: adaptedContent.content,
           images: post.images,
+          videos: post.videos,
           hashtags: adaptedContent.hashtags
         };
 
-        switch (adaptedContent.platform) {
-          case 'twitter':
-            await SocialMediaService.publishToTwitter(socialAccount, postData);
-            break;
-          case 'telegram':
-            await SocialMediaService.publishToTelegram(socialAccount, postData);
-            break;
-          case 'reddit':
-            // Find the user's Reddit social account (regardless of isActive)
-            const redditAccount = user.socialAccounts.find(
-              acc => acc.platform === 'reddit'
-            );
-            if (!redditAccount) {
-              adaptedContent.publishStatus = 'failed';
-              adaptedContent.errorMessage = 'Reddit account not connected';
-              continue;
-            }
-            await SocialMediaService.publishToReddit(redditAccount, postData);
-            break;
-        }
+        await SocialMediaService.publish(socialAccount, postData);
 
         adaptedContent.publishStatus = 'published';
         adaptedContent.publishedAt = new Date();

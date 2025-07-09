@@ -79,6 +79,7 @@ export interface ISocialMediaApi {
   getPost(id: string): Promise<any>;
   deletePost(id: string): Promise<void>;
   getUserProfile(identifier?: string): Promise<any>;
+  getReachStats(options?: any): Promise<{ audience: number; engagement?: { likes?: number; retweets?: number; replies?: number; memberCount?: number; karma?: number } }>;
 }
 
 export interface PostData {

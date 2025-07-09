@@ -240,21 +240,11 @@ router.post('/:postId/publish', auth, async (req, res) => {
         const postData = {
           content: adaptedContent.content,
           images: post.images,
+          videos: post.videos,
           hashtags: adaptedContent.hashtags
         };
 
-        let publishResult;
-        switch (adaptedContent.platform) {
-          case 'twitter':
-            publishResult = await SocialMediaService.publishToTwitter(socialAccount, postData);
-            break;
-          case 'telegram':
-            publishResult = await SocialMediaService.publishToTelegram(socialAccount, postData);
-            break;
-          case 'reddit':
-            publishResult = await SocialMediaService.publishToReddit(socialAccount, postData);
-            break;
-        }
+        const publishResult = await SocialMediaService.publish(socialAccount, postData);
 
         adaptedContent.publishStatus = 'published';
         adaptedContent.publishedAt = new Date();

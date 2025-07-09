@@ -1,83 +1,65 @@
-import OAuth from 'oauth-1.0a';
-import * as crypto from 'crypto';
-import axios from 'axios';
-import FormData from 'form-data';
+
 import { ISocialAccount, PostData, IUser } from '../types';
 import { User } from '../models/User';
-import { config } from '../config/config';
 import { Types } from 'mongoose';
-import { TwitterApi } from './api/TwitterApi';
+import { SocialMediaApiFactory } from './SocialMediaApiFactory';
 import { RedditApi } from './api/RedditApi';
-import { TelegramApi } from './api/TelegramApi';
 
 export class SocialMediaService {
 
-
-  static async publishToTwitter(account: ISocialAccount, postData: PostData): Promise<any> {
-    const twitterApi = new TwitterApi(account.accessToken, account.refreshToken as string);
-    const allMedia = [
-      ...(postData.images || []),
-      ...(postData.videos || []),
-    ];
-    return twitterApi.post(postData.content, { media: allMedia });
-  }
-  static async publishToTelegram(account: ISocialAccount, postData: PostData): Promise<any> {
-    const telegramApi = new TelegramApi(account.accessToken);
-    const allMedia = [
-      ...(postData.images || []),
-      ...(postData.videos || []),
-    ];
-    return telegramApi.post(postData.content, { chatId: account.id, media: allMedia } as any);
-  }
-
-  static async publishToReddit(account: ISocialAccount, postData: PostData): Promise<any> {
-    // Check if token needs refreshing
-    if (account.tokenExpiry && new Date() > new Date(account.tokenExpiry)) {
+  static async publish(account: ISocialAccount, postData: PostData): Promise<any> {
+    if (account.platform === 'reddit' && account.tokenExpiry && new Date() > new Date(account.tokenExpiry)) {
       console.log('Reddit token expired, refreshing...');
-      await SocialMediaService.refreshRedditToken(account);
+      await this.refreshRedditToken(account);
     }
 
-    const redditApi = new RedditApi(account.accessToken, account.refreshToken as string);
-    const allMedia = [
-      ...(postData.images || []),
-      ...(postData.videos || []),
-    ];
-    return redditApi.post(postData.content, { subreddit: account.subredditName as string, media: allMedia });
-  }
-
-  static async getUserProfile(platform: string, account: ISocialAccount): Promise<any> {
-    switch (platform) {
-      case 'twitter':
-        const twitterApi = new TwitterApi(account.accessToken, account.refreshToken as string);
-        return twitterApi.getUserProfile(account.id);
-      case 'reddit':
-        // Check if token needs refreshing before fetching profile
-        if (account.tokenExpiry && new Date() > new Date(account.tokenExpiry)) {
-          console.log('Reddit token expired, refreshing...');
-          await SocialMediaService.refreshRedditToken(account);
-        }
-        const redditApi = new RedditApi(account.accessToken, account.refreshToken as string);
-        return redditApi.getUserProfile(account.username);
-      case 'telegram':
-        const telegramApi = new TelegramApi(account.accessToken);
-        return telegramApi.getUserProfile();
-      default:
-        throw new Error('Unsupported platform');
+    const api = SocialMediaApiFactory.createApi(account);
+    const allMedia = [...(postData.images || []), ...(postData.videos || [])];
+    
+    let options: any = { media: allMedia };
+    if (account.platform === 'telegram') {
+      options.chatId = account.id;
+    } else if (account.platform === 'reddit') {
+      options.subreddit = account.subredditName;
     }
+
+    return api.post(postData.content, options);
   }
 
-  static async refreshRedditToken(account: ISocialAccount): Promise<any> {
+  static async getUserProfile(account: ISocialAccount): Promise<any> {
+    if (account.platform === 'reddit' && account.tokenExpiry && new Date() > new Date(account.tokenExpiry)) {
+      console.log('Reddit token expired, refreshing...');
+      await this.refreshRedditToken(account);
+    }
+
+    const api = SocialMediaApiFactory.createApi(account);
+    const identifier = account.platform === 'twitter' ? account.id : account.username;
+    return api.getUserProfile(identifier);
+  }
+
+
+  static async getReachStats(account: ISocialAccount): Promise<{ audience: number; engagement?: any }> {
+    const api = SocialMediaApiFactory.createApi(account);
+    let options: any = {};
+    if (account.platform === 'telegram') {
+      options.chatId = account.id;
+    } else if (account.platform === 'reddit') {
+      options.subredditName = account.subredditName;
+      options.username = account.username;
+    }
+    return api.getReachStats(options);
+  }
+
+static async refreshRedditToken(account: ISocialAccount): Promise<void> {
     try {
       const redditApi = new RedditApi(account.accessToken, account.refreshToken as string);
-      const newAccessToken = await redditApi.refreshToken(); // Capture the returned token
+      const newAccessToken = await redditApi.refreshToken();
 
-      // Find the user and update the specific social account
       const user = await User.findOne({ 'socialAccounts._id': account._id });
       if (user) {
         const socialAccountIndex = user.socialAccounts.findIndex(acc => acc._id?.equals(account._id as Types.ObjectId));
         if (socialAccountIndex !== -1) {
-          user.socialAccounts[socialAccountIndex].accessToken = newAccessToken; // Use the new token
-          // Reddit tokens typically expire in 1 hour (3600 seconds)
+          user.socialAccounts[socialAccountIndex].accessToken = newAccessToken;
           user.socialAccounts[socialAccountIndex].tokenExpiry = new Date(Date.now() + 3600 * 1000);
           await user.save();
           console.log('Reddit token refreshed and saved to DB.');
@@ -88,6 +70,4 @@ export class SocialMediaService {
       throw new Error('Failed to refresh Reddit token and save to DB.');
     }
   }
-
-  
 }

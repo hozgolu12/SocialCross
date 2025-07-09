@@ -12,7 +12,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Configure pytesseract path if needed (uncomment and adjust for your system)
-# pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 @app.route('/analyze-logo', methods=['POST'])
 def analyze_logo():

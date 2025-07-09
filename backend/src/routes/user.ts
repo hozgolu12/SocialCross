@@ -1,9 +1,6 @@
 import express from 'express';
 import { auth } from '../middleware/auth';
 import { User } from '../models/User';
-import { TwitterApi } from '../services/api/TwitterApi';
-import { TelegramApi } from '../services/api/TelegramApi';
-import { RedditApi } from '../services/api/RedditApi';
 import { SocialMediaService } from '../services/socialMediaService';
 
 const router = express.Router();
@@ -89,44 +86,30 @@ router.get('/reach', auth, async (req, res) => {
 
     for (const acc of user.socialAccounts) {
       let audienceSize = 0;
-      let engagement: any = {}; // Initialize engagement object
-      const platform = acc.platform.toLowerCase();
+      let engagement: any = {};
 
       try {
-        if (platform === 'twitter') {
-          const twitterApi = new TwitterApi(acc.accessToken, acc.refreshToken as string);
-          const profile = await twitterApi.getUserProfile(acc.id);
-          audienceSize = profile.followers_count;
-          engagement = await twitterApi.getRecentTweetsEngagement(acc.id);
-        } else if (platform === 'telegram') {
-          const telegramApi = new TelegramApi(acc.accessToken);
-          audienceSize = await telegramApi.getChatMembersCount(acc.id);
-        } else if (platform === 'reddit') {
-          // Ensure token is refreshed before fetching subreddit subscribers
-          if (acc.tokenExpiry && new Date() > new Date(acc.tokenExpiry)) {
-            await SocialMediaService.refreshRedditToken(acc);
-          }
-          const redditApi = new RedditApi(acc.accessToken, acc.refreshToken as string);
-          if (acc.subredditName) {
-            audienceSize = await redditApi.getSubredditSubscribers(acc.subredditName);
-          } else {
-            // If no subredditName, try to get user's own follower count (if applicable, or default to 0)
-            const userProfile = await redditApi.getUserProfile(acc.username);
-            audienceSize = userProfile.total_karma; // Example: using total_karma as a proxy for 'reach'
-          }
-        }
+        const stats = await SocialMediaService.getReachStats(acc);
+        audienceSize = stats.audience;
+        engagement = stats.engagement;
       } catch (err: any) {
-        console.warn(`API error for ${platform} account ${acc.username || acc.id}:`, err?.response?.data || err.message);
+        console.warn(`API error for ${acc.platform} account ${acc.username || acc.id}:`, err?.response?.data || err.message);
         // Fallback to stored count if API call fails
-        if (platform === 'twitter') audienceSize = acc.followersCount || 0;
-        else if (platform === 'telegram') audienceSize = acc.memberCount || 0;
-        else if (platform === 'reddit') audienceSize = acc.subscribers || 0;
+        if (acc.platform === 'twitter') audienceSize = acc.followersCount || 0;
+        else if (acc.platform === 'telegram') audienceSize = acc.memberCount || 0;
+        else if (acc.platform === 'reddit') audienceSize = acc.subscribers || 0;
       }
 
       totalAudienceSize += audienceSize;
+      const username = acc.platform === 'reddit'
+        ? acc.subredditName
+        : acc.platform === 'telegram'
+          ? 'Telegram Members'
+          : acc.username;
+
       details.push({
         platform: acc.platform,
-        username: acc.platform === 'reddit' ? acc.subredditName : acc.username,
+        username: username,
         audienceSize,
         engagement,
       });

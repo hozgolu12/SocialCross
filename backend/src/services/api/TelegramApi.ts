@@ -60,6 +60,11 @@ export class TelegramApi implements ISocialMediaApi {
     }
   }
 
+  async getReachStats(options: { chatId: string }): Promise<{ audience: number; engagement?: { memberCount?: number } }> {
+    const memberCount = await this.getChatMembersCount(options.chatId);
+    return { audience: memberCount, engagement: { memberCount } };
+  }
+
   async getChatMembersCount(chatId: string): Promise<number> {
     try {
       const response = await axios.get(

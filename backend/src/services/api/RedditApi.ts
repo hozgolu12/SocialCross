@@ -174,6 +174,15 @@ export class RedditApi implements ISocialMediaApi {
     }
   }
 
+  async getReachStats(options: { subredditName?: string; username: string }): Promise<{ audience: number; engagement?: { karma?: number } }> {
+    if (options.subredditName) {
+      const audience = await this.getSubredditSubscribers(options.subredditName);
+      return { audience, engagement: { karma: 0 } }; // Subreddit doesn't have karma
+    }
+    const userProfile = await this.getUserProfile(options.username);
+    return { audience: userProfile.total_karma, engagement: { karma: userProfile.total_karma } };
+  }
+
   async getSubredditSubscribers(subredditName: string): Promise<number> {
     try {
       await this.refreshToken();

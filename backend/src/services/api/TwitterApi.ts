@@ -173,10 +173,16 @@ export class TwitterApi implements ISocialMediaApi {
     }
   }
 
+  async getReachStats(): Promise<{ audience: number; engagement?: any }> {
+    const profile = await this.getUserProfile(this.token.key);
+    const engagement = await this.getRecentTweetsEngagement(this.token.key);
+    return { audience: profile.followers_count, engagement };
+  }
+
   async getRecentTweetsEngagement(userId: string): Promise<{ likes: number; retweets: number; replies: number }> {
     try {
       const request_data = {
-        url: `https://api.twitter.com/1.1/statuses/user_timeline.json?user_id=${userId}&count=5`, // Fetch last 5 tweets
+        url: `https://api.twitter.com/1.1/statuses/user_timeline.json?user_id=${userId}&count=5`,
         method: 'GET',
         data: {},
       };
